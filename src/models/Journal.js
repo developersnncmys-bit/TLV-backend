@@ -10,6 +10,9 @@ const journalSchema = new mongoose.Schema(
     region: { type: String, default: '' },
     author: { type: String, default: 'The Luxe Version' },
     hero: { type: String, default: '' },
+    // Additional angles gallery — rendered as the "N OTHER ANGLES"
+    // thumbnail grid in the storefront StudioShowcase.
+    images: { type: [String], default: [] },
     pull_quote: { type: String, default: '' },
     body: { type: String, default: '' },
     order: { type: Number, default: 0, index: true },

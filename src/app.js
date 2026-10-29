@@ -17,6 +17,7 @@ import ownershipPillarRoutes from './routes/ownershipPillar.routes.js'
 import houseContentRoutes from './routes/houseContent.routes.js'
 import orderRoutes from './routes/order.routes.js'
 import meRoutes from './routes/me.routes.js'
+import luxeExclusiveRoutes from './routes/luxeExclusive.routes.js'
 
 export function createApp() {
   const app = express()
@@ -49,6 +50,7 @@ export function createApp() {
   app.use('/api/house-content', houseContentRoutes)
   app.use('/api/orders', orderRoutes)
   app.use('/api/users/me', meRoutes)
+  app.use('/api/luxe-exclusive', luxeExclusiveRoutes)
 
   app.use(notFound)
   app.use(errorHandler)

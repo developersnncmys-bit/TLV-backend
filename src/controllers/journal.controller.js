@@ -9,6 +9,7 @@ const createSchema = z.object({
   region: z.string().optional(),
   author: z.string().optional(),
   hero: z.string().optional(),
+  images: z.array(z.string()).optional(),
   pull_quote: z.string().optional(),
   body: z.string().optional(),
   order: z.number().int().optional(),

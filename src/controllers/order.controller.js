@@ -2,6 +2,7 @@ import asyncHandler from 'express-async-handler'
 import { z } from 'zod'
 import { Order } from '../models/Order.js'
 import { Product } from '../models/Product.js'
+import { LuxeExclusive } from '../models/LuxeExclusive.js'
 
 // ---------- Validation ----------
 
@@ -117,31 +118,49 @@ export const getOrder = asyncHandler(async (req, res) => {
 export const createOrder = asyncHandler(async (req, res) => {
   const payload = createOrderSchema.parse(req.body)
 
-  // Resolve products from the catalog so item snapshots are trustworthy.
-  // The storefront passes handles; we fetch the matching products in one
-  // query and reject if any handle is missing or inactive.
+  // Resolve items from the catalog so snapshots are trustworthy. The
+  // storefront passes handles; a handle resolves to either a Product
+  // (regular catalog) or a LuxeExclusive piece (made-to-order range,
+  // keyed by slug _id). Any handle that matches neither is rejected.
   const handles = payload.items.map((i) => i.handle.toLowerCase())
-  const products = await Product.find({ handle: { $in: handles }, status: 'active' })
+  const [products, exclusives] = await Promise.all([
+    Product.find({ handle: { $in: handles }, status: 'active' }),
+    LuxeExclusive.find({ _id: { $in: handles }, active: true }),
+  ])
   const byHandle = new Map(products.map((p) => [p.handle, p]))
+  const byExclusive = new Map(exclusives.map((e) => [e._id, e]))
 
-  const missing = handles.filter((h) => !byHandle.has(h))
+  const missing = handles.filter((h) => !byHandle.has(h) && !byExclusive.has(h))
   if (missing.length) {
     return res.status(400).json({ error: `Unavailable items: ${missing.join(', ')}` })
   }
 
   const items = payload.items.map((input) => {
-    const p = byHandle.get(input.handle.toLowerCase())
-    const unitPrice = p.price
-    const lineTotal = unitPrice * input.qty
+    const handle = input.handle.toLowerCase()
+    const p = byHandle.get(handle)
+    if (p) {
+      const unitPrice = p.price
+      return {
+        product: p._id,
+        handle: p.handle,
+        reference: p.reference,
+        name: p.name,
+        image: p.image || (p.images && p.images[0]) || '',
+        qty: input.qty,
+        unitPrice,
+        lineTotal: unitPrice * input.qty,
+      }
+    }
+    // Luxe Exclusive piece — no Product ref, slug stands in as the handle.
+    const e = byExclusive.get(handle)
+    const unitPrice = e.price || 0
     return {
-      product: p._id,
-      handle: p.handle,
-      reference: p.reference,
-      name: p.name,
-      image: p.image || (p.images && p.images[0]) || '',
+      handle: e._id,
+      name: e.name,
+      image: e.image || '',
       qty: input.qty,
       unitPrice,
-      lineTotal,
+      lineTotal: unitPrice * input.qty,
     }
   })
 

@@ -8,6 +8,9 @@ const createSchema = z.object({
   productLabel: z.string().optional(),
   categoryLabel: z.string().optional(),
   image: z.string().optional(),
+  heroImage: z.string().optional(),
+  heroTitle: z.string().optional(),
+  heroCaption: z.string().optional(),
   order: z.number().int().optional(),
   active: z.boolean().optional(),
 })
